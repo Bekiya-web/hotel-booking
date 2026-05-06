@@ -37,6 +37,11 @@ export const createBooking = async (booking: {
   check_out: string;
   guests_count: number;
   special_requests?: string;
+  payment_method?: string;
+  payment_proof_url?: string;
+  id_type?: string;
+  id_front_url?: string;
+  id_back_url?: string;
 }) => {
   // First, create or get guest
   const { data: existingGuest } = await supabase
@@ -48,7 +53,20 @@ export const createBooking = async (booking: {
   let guestId: string;
   
   if (existingGuest) {
-    guestId = existingGuest.id;
+    // Update existing guest with new information
+    const { data: updatedGuest, error: updateError } = await supabase
+      .from('guests')
+      .update({
+        first_name: booking.guest.first_name,
+        last_name: booking.guest.last_name,
+        phone: booking.guest.phone
+      })
+      .eq('id', existingGuest.id)
+      .select()
+      .single();
+    
+    if (updateError) throw updateError;
+    guestId = updatedGuest.id;
   } else {
     const { data: newGuest, error: guestError } = await supabase
       .from('guests')
@@ -79,7 +97,10 @@ export const createBooking = async (booking: {
   const bookingCount = await supabase.from('bookings').select('id', { count: 'exact', head: true });
   const bookingId = `BK-${String((bookingCount.count || 0) + 2401).padStart(4, '0')}`;
 
-  // Create booking
+  // Determine payment status based on payment method
+  const paymentStatus = booking.payment_method === 'hotel' ? 'pending' : 'pending';
+
+  // Create booking with payment and ID information
   const { data, error } = await supabase
     .from('bookings')
     .insert({
@@ -91,7 +112,14 @@ export const createBooking = async (booking: {
       guests_count: booking.guests_count,
       special_requests: booking.special_requests,
       amount,
-      status: 'pending'
+      status: 'pending',
+      payment_method: booking.payment_method || 'hotel',
+      payment_proof_url: booking.payment_proof_url,
+      payment_status: paymentStatus,
+      id_type: booking.id_type,
+      id_front_url: booking.id_front_url,
+      id_back_url: booking.id_back_url,
+      id_verified: false
     })
     .select(`
       *,

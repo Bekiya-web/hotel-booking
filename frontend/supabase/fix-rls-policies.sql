@@ -1,39 +1,83 @@
--- Fix Row Level Security Policies for Admin Operations
--- Run this in Supabase SQL Editor to fix the "row-level security policy" error
+-- ============================================
+-- FIX ROW LEVEL SECURITY POLICIES
+-- Run this in your Supabase SQL Editor to fix 406 errors
+-- ============================================
 
--- Drop existing restrictive policies for rooms
+-- Drop all existing policies for rooms
+DROP POLICY IF EXISTS "Public can view rooms" ON rooms;
+DROP POLICY IF EXISTS "Public can insert rooms" ON rooms;
+DROP POLICY IF EXISTS "Public can update rooms" ON rooms;
+DROP POLICY IF EXISTS "Public can delete rooms" ON rooms;
 DROP POLICY IF EXISTS "Authenticated users can manage rooms" ON rooms;
 
--- Create new policies that allow public access (for admin using anon key)
-CREATE POLICY "Public can insert rooms" ON rooms FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public can update rooms" ON rooms FOR UPDATE USING (true);
-CREATE POLICY "Public can delete rooms" ON rooms FOR DELETE USING (true);
+-- Create new policies that allow public read access
+CREATE POLICY "Enable read access for all users" ON rooms
+FOR SELECT USING (true);
 
--- Also update reviews policies for admin management
-DROP POLICY IF EXISTS "Authenticated users can manage reviews" ON reviews;
-CREATE POLICY "Public can insert reviews" ON reviews FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public can update reviews" ON reviews FOR UPDATE USING (true);
-CREATE POLICY "Public can delete reviews" ON reviews FOR DELETE USING (true);
+-- Allow public (anon key) to manage rooms for admin operations
+CREATE POLICY "Enable insert for all users" ON rooms
+FOR INSERT WITH CHECK (true);
 
--- Update room_status policies
-DROP POLICY IF EXISTS "Authenticated users can manage room status" ON room_status;
-CREATE POLICY "Public can update room status" ON room_status FOR UPDATE USING (true);
-CREATE POLICY "Public can view room status" ON room_status FOR SELECT USING (true);
+CREATE POLICY "Enable update for all users" ON rooms
+FOR UPDATE USING (true);
 
--- Update guests policies for admin
+CREATE POLICY "Enable delete for all users" ON rooms
+FOR DELETE USING (true);
+
+-- ============================================
+-- Fix other tables policies
+-- ============================================
+
+-- Guests policies
+DROP POLICY IF EXISTS "Public can create guests" ON guests;
 DROP POLICY IF EXISTS "Authenticated users can manage guests" ON guests;
-CREATE POLICY "Public can view guests" ON guests FOR SELECT USING (true);
-CREATE POLICY "Public can update guests" ON guests FOR UPDATE USING (true);
-CREATE POLICY "Public can delete guests" ON guests FOR DELETE USING (true);
 
--- Update bookings policies for admin
+CREATE POLICY "Enable all access for guests" ON guests
+FOR ALL USING (true);
+
+-- Bookings policies
+DROP POLICY IF EXISTS "Public can create bookings" ON bookings;
+DROP POLICY IF EXISTS "Public can view their bookings" ON bookings;
 DROP POLICY IF EXISTS "Authenticated users can manage bookings" ON bookings;
-CREATE POLICY "Public can view all bookings" ON bookings FOR SELECT USING (true);
-CREATE POLICY "Public can update bookings" ON bookings FOR UPDATE USING (true);
-CREATE POLICY "Public can delete bookings" ON bookings FOR DELETE USING (true);
 
--- Verify policies
-SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
+CREATE POLICY "Enable all access for bookings" ON bookings
+FOR ALL USING (true);
+
+-- Reviews policies (keep approved-only for public read)
+DROP POLICY IF EXISTS "Public can view reviews" ON reviews;
+DROP POLICY IF EXISTS "Public can view approved reviews" ON reviews;
+DROP POLICY IF EXISTS "Public can submit reviews" ON reviews;
+DROP POLICY IF EXISTS "Public can manage reviews" ON reviews;
+DROP POLICY IF EXISTS "Authenticated users can manage reviews" ON reviews;
+
+CREATE POLICY "Enable read approved reviews" ON reviews
+FOR SELECT USING (approved = true);
+
+CREATE POLICY "Enable insert for reviews" ON reviews
+FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Enable update for reviews" ON reviews
+FOR UPDATE USING (true);
+
+CREATE POLICY "Enable delete for reviews" ON reviews
+FOR DELETE USING (true);
+
+-- Room status policies
+DROP POLICY IF EXISTS "Authenticated users can manage room status" ON room_status;
+
+CREATE POLICY "Enable all access for room_status" ON room_status
+FOR ALL USING (true);
+
+-- ============================================
+-- VERIFICATION
+-- ============================================
+SELECT 
+  schemaname,
+  tablename,
+  policyname,
+  permissive,
+  roles,
+  cmd
 FROM pg_policies 
-WHERE tablename IN ('rooms', 'bookings', 'guests', 'reviews', 'room_status')
+WHERE schemaname = 'public'
 ORDER BY tablename, policyname;

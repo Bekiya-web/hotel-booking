@@ -12,13 +12,21 @@ export const getRooms = async (): Promise<Room[]> => {
 };
 
 export const getRoom = async (roomId: string): Promise<Room | null> => {
+  console.log('Fetching room with ID:', roomId);
+  
   const { data, error } = await supabase
     .from('rooms')
     .select('*')
     .eq('room_id', roomId)
-    .single();
+    .maybeSingle();
   
-  if (error) throw error;
+  console.log('Room data:', data);
+  console.log('Room error:', error);
+  
+  if (error) {
+    console.error('Error fetching room:', error);
+    throw error;
+  }
   return data;
 };
 

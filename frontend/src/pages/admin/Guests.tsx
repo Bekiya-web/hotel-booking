@@ -327,7 +327,7 @@ const AdminGuests = () => {
               </div>
               <div>
                 <p className="text-2xl font-serif font-semibold text-green-600">
-                  ${bookings.reduce((sum, b) => sum + Number(b.amount), 0).toLocaleString()}
+                  ETB {bookings.reduce((sum, b) => sum + Number(b.amount), 0).toLocaleString()}
                 </p>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
               </div>

@@ -6,6 +6,7 @@ import BookingWidget from "@/components/site/BookingWidget";
 import RoomCard from "@/components/site/RoomCard";
 import { Button } from "@/components/ui/button";
 import { getRooms } from "@/lib/supabase";
+import { getReviews } from "@/api";
 import dining from "@/assets/amenity-dining.jpg";
 import spa from "@/assets/amenity-spa.jpg";
 
@@ -23,12 +24,6 @@ const experiences = [
   { icon: Wifi, title: "Smart suites", text: "Voice-controlled lighting, climate, and curtains in every room." },
 ];
 
-const testimonials = [
-  { name: "Helena M.", text: "The service was so quietly attentive — every detail anticipated. We didn't want to leave.", rating: 5, country: "London, UK" },
-  { name: "Daniel R.", text: "The Deluxe Skyline at sunset is something I'll remember for years. Easily the best stay of my life.", rating: 5, country: "Toronto, CA" },
-  { name: "Sara K.", text: "Booked the spa package for our anniversary. From check-in to checkout it felt cinematic.", rating: 5, country: "Dubai, UAE" },
-];
-
 const modernFeatures = [
   { icon: Smartphone, title: "Mobile Check-in", text: "Skip the desk. Check in from your phone and go straight to your room." },
   { icon: CreditCard, title: "Contactless Payment", text: "Apple Pay, Google Pay, and all major digital wallets accepted." },
@@ -42,6 +37,11 @@ const Index = () => {
   const { data: rooms = [], isLoading } = useQuery({
     queryKey: ['rooms'],
     queryFn: getRooms
+  });
+
+  const { data: reviews = [], isLoading: reviewsLoading } = useQuery({
+    queryKey: ['reviews'],
+    queryFn: getReviews
   });
 
   return (
@@ -68,7 +68,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="animate-fade-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
+          <div className="animate-fade-up" style={{ animationDelay: "0.15s" }}>
             <BookingWidget />
             <div className="flex flex-wrap gap-x-8 gap-y-2 mt-5 text-xs text-white/80">
               {trustItems.map((t) => (
@@ -194,32 +194,40 @@ const Index = () => {
       <section className="py-24 md:py-32">
         <div className="container">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="text-xs uppercase tracking-[0.4em] text-yellow-600 mb-4">Guests · 4.9 / 5</p>
+            <p className="text-xs uppercase tracking-[0.4em] text-yellow-600 mb-4">
+              Guests · {reviews.length > 0 ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1) : '0.0'} / 5
+            </p>
             <h2 className="font-serif text-4xl md:text-5xl mb-4">Loved by travellers worldwide.</h2>
             <div className="flex justify-center gap-1 mb-2">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-5 h-5 fill-yellow-500 text-yellow-500" />
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">From over 1,400 verified stays</p>
+            <p className="text-sm text-muted-foreground">From {reviews.length} verified stays</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <figure key={t.name} className="bg-card border border-border rounded-md p-8 hover:shadow-card transition-smooth">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                  ))}
-                </div>
-                <blockquote className="font-serif text-lg leading-relaxed mb-6">"{t.text}"</blockquote>
-                <figcaption className="text-sm">
-                  <p className="text-foreground font-medium">{t.name}</p>
-                  <p className="text-muted-foreground text-xs mt-0.5">{t.country}</p>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+          {reviewsLoading ? (
+            <p className="text-center text-muted-foreground">Loading reviews...</p>
+          ) : reviews.length === 0 ? (
+            <p className="text-center text-muted-foreground">No reviews yet. Be the first to share your experience!</p>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6">
+              {reviews.slice(0, 3).map((review) => (
+                <figure key={review.id} className="bg-card border border-border rounded-md p-8 hover:shadow-card transition-smooth">
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(review.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    ))}
+                  </div>
+                  <blockquote className="font-serif text-lg leading-relaxed mb-6">"{review.text}"</blockquote>
+                  <figcaption className="text-sm">
+                    <p className="text-foreground font-medium">{review.guest_name}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{review.country}</p>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

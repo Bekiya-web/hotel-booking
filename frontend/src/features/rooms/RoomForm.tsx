@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Image as ImageIcon, Save, X } from "lucide-react";
+import { Image as ImageIcon, Save, X, Star, Users, BedDouble, Maximize, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { MediaLibrary } from "@/features/media/MediaLibrary";
 import type { Room } from "@/types/database";
 
@@ -66,10 +68,11 @@ export const RoomForm = ({ room, onSubmit, onCancel, isSubmitting }: RoomFormPro
     <>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="images">Images</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4 mt-4">
@@ -310,6 +313,125 @@ export const RoomForm = ({ room, onSubmit, onCancel, isSubmitting }: RoomFormPro
                 rows={2}
               />
             </div>
+          </TabsContent>
+
+          <TabsContent value="preview" className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+              <Eye className="w-4 h-4" />
+              <span>Preview how this room will appear to guests</span>
+            </div>
+
+            {/* Room Card Preview */}
+            <Card className="overflow-hidden">
+              <div className="aspect-[4/3] bg-muted relative">
+                {formData.image ? (
+                  <img src={formData.image} alt={formData.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <ImageIcon className="w-12 h-12" />
+                  </div>
+                )}
+                {formData.available <= 3 && formData.available > 0 && (
+                  <Badge className="absolute top-3 right-3 bg-destructive/90 border-0 text-destructive-foreground">
+                    Only {formData.available} left
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <p className="text-xs uppercase tracking-widest text-yellow-600 mb-1">
+                      {formData.view || 'View'}
+                    </p>
+                    <h3 className="font-serif text-2xl mb-1">
+                      {formData.name || 'Room Name'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground italic">
+                      {formData.tagline || 'Tagline'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-serif text-3xl text-yellow-600">
+                      ${formData.price || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">per night</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-foreground/80 mb-4 line-clamp-2">
+                  {formData.description || 'Short description will appear here'}
+                </p>
+
+                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-4 pb-4 border-b">
+                  <span className="flex items-center gap-1.5">
+                    <BedDouble className="w-4 h-4 text-yellow-600" />
+                    {formData.bed || 'Bed type'}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Maximize className="w-4 h-4 text-yellow-600" />
+                    {formData.size || 'Size'}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-yellow-600" />
+                    Up to {formData.guests || 2} guests
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    {formData.rating || 0} ({formData.reviews_count || 0})
+                  </span>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Amenities
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.amenities ? (
+                      formData.amenities.split(',').map((amenity, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {amenity.trim()}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No amenities added</span>
+                    )}
+                  </div>
+                </div>
+
+                <Button className="w-full" variant="hero">
+                  View Details
+                </Button>
+              </div>
+            </Card>
+
+            {/* Gallery Preview */}
+            {formData.gallery && formData.gallery.trim() && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Gallery Images</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {formData.gallery.split(',').map((url, index) => {
+                    const trimmedUrl = url.trim();
+                    if (!trimmedUrl) return null;
+                    return (
+                      <div key={index} className="aspect-video rounded overflow-hidden border">
+                        <img src={trimmedUrl} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Long Description Preview */}
+            {formData.long_description && (
+              <Card className="p-6">
+                <h3 className="font-serif text-xl mb-3">About this room</h3>
+                <p className="text-foreground/80 leading-relaxed">
+                  {formData.long_description}
+                </p>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
 

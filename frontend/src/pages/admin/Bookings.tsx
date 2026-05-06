@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Search, Filter, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Search, Filter, Edit, Trash2, CheckCircle, XCircle, Eye, Phone, Building2, Wallet, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { getBookings, updateBooking, deleteBooking } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Booking } from "@/types/database";
@@ -15,6 +16,8 @@ const AdminBookings = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['bookings'],
@@ -59,6 +62,37 @@ const AdminBookings = () => {
     }
   };
 
+  const handleApprove = (booking: Booking) => {
+    updateMutation.mutate({ 
+      id: booking.id, 
+      updates: { 
+        status: 'confirmed',
+        payment_status: 'verified'
+      } 
+    });
+    setShowDetailsModal(false);
+    toast.success("Booking approved and confirmed!");
+  };
+
+  const handleReject = (booking: Booking) => {
+    if (confirm(`Are you sure you want to reject booking ${booking.booking_id}?`)) {
+      updateMutation.mutate({ 
+        id: booking.id, 
+        updates: { 
+          status: 'cancelled',
+          payment_status: 'failed'
+        } 
+      });
+      setShowDetailsModal(false);
+      toast.success("Booking rejected");
+    }
+  };
+
+  const viewBookingDetails = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setShowDetailsModal(true);
+  };
+
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = searchTerm === "" || 
       booking.booking_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,6 +111,33 @@ const AdminBookings = () => {
       case "cancelled": return "bg-red-500/10 text-red-600 border-red-500/30";
       case "completed": return "bg-blue-500/10 text-blue-600 border-blue-500/30";
       default: return "bg-gray-500/10 text-gray-600 border-gray-500/30";
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case "verified": return "bg-green-500/10 text-green-600 border-green-500/30";
+      case "pending": return "bg-yellow-500/10 text-yellow-600 border-yellow-500/30";
+      case "failed": return "bg-red-500/10 text-red-600 border-red-500/30";
+      default: return "bg-gray-500/10 text-gray-600 border-gray-500/30";
+    }
+  };
+
+  const getPaymentMethodIcon = (method: string) => {
+    switch (method) {
+      case "telebirr": return <Phone className="w-4 h-4" />;
+      case "bank": return <Building2 className="w-4 h-4" />;
+      case "hotel": return <Wallet className="w-4 h-4" />;
+      default: return null;
+    }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case "telebirr": return "Telebirr";
+      case "bank": return "Bank Transfer";
+      case "hotel": return "Pay at Hotel";
+      default: return "Unknown";
     }
   };
 
@@ -174,12 +235,12 @@ const AdminBookings = () => {
                         <span className="ml-2">{booking.guest?.email || 'N/A'}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Room:</span>
-                        <span className="ml-2 font-medium">{booking.room?.name || 'Unknown'}</span>
+                        <span className="text-muted-foreground">Phone:</span>
+                        <span className="ml-2">{booking.guest?.phone || 'N/A'}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Guests:</span>
-                        <span className="ml-2">{booking.guests_count} people</span>
+                        <span className="text-muted-foreground">Room:</span>
+                        <span className="ml-2 font-medium">{booking.room?.name || 'Unknown'}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Check-in:</span>
@@ -190,8 +251,25 @@ const AdminBookings = () => {
                         <span className="ml-2">{formatDate(booking.check_out)}</span>
                       </div>
                       <div>
+                        <span className="text-muted-foreground">Guests:</span>
+                        <span className="ml-2">{booking.guests_count} people</span>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground">Amount:</span>
-                        <span className="ml-2 font-semibold text-yellow-500">${booking.amount}</span>
+                        <span className="ml-2 font-semibold text-yellow-500">ETB {booking.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Payment:</span>
+                        <div className="flex items-center gap-1">
+                          {booking.payment_method && getPaymentMethodIcon(booking.payment_method)}
+                          <span className="ml-1">{booking.payment_method ? getPaymentMethodLabel(booking.payment_method) : 'N/A'}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Payment Status:</span>
+                        <Badge className={`ml-2 ${getPaymentStatusColor(booking.payment_status || 'pending')}`}>
+                          {booking.payment_status || 'pending'}
+                        </Badge>
                       </div>
                       {booking.special_requests && (
                         <div className="md:col-span-2">
@@ -204,12 +282,22 @@ const AdminBookings = () => {
 
                   {/* Actions */}
                   <div className="flex lg:flex-col gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => viewBookingDetails(booking)}
+                      className="flex-1 lg:w-40"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                    
                     <Select 
                       value={booking.status} 
                       onValueChange={(value) => handleStatusChange(booking.id, value)}
                       disabled={updateMutation.isPending}
                     >
-                      <SelectTrigger className="w-full lg:w-40">
+                      <SelectTrigger className="flex-1 lg:w-40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -257,13 +345,354 @@ const AdminBookings = () => {
               </div>
               <div>
                 <p className="text-2xl font-serif font-semibold text-blue-600">
-                  ${filteredBookings.reduce((sum, b) => sum + Number(b.amount), 0).toLocaleString()}
+                  ETB {filteredBookings.reduce((sum, b) => sum + Number(b.amount), 0).toLocaleString()}
                 </p>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
               </div>
             </div>
           </Card>
         )}
+
+        {/* Booking Details Modal */}
+        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">Booking Details</DialogTitle>
+              <DialogDescription>
+                Complete information about this booking
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedBooking && (
+              <div className="space-y-6">
+                {/* Booking ID and Status */}
+                <div className="flex items-center justify-between pb-4 border-b">
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedBooking.booking_id}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Created: {formatDate(selectedBooking.created_at || '')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className={getStatusColor(selectedBooking.status)}>
+                      {selectedBooking.status}
+                    </Badge>
+                    <Badge className={getPaymentStatusColor(selectedBooking.payment_status || 'pending')}>
+                      {selectedBooking.payment_status || 'pending'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Guest Information */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    Guest Information
+                  </h4>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md">
+                    <div>
+                      <span className="text-muted-foreground">Name:</span>
+                      <span className="ml-2 font-medium">
+                        {selectedBooking.guest 
+                          ? `${selectedBooking.guest.first_name} ${selectedBooking.guest.last_name}`
+                          : 'Unknown'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="ml-2">{selectedBooking.guest?.email || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Phone:</span>
+                      <span className="ml-2 font-medium">{selectedBooking.guest?.phone || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Guests Count:</span>
+                      <span className="ml-2">{selectedBooking.guests_count} people</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Room & Stay Information */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    Room & Stay Details
+                  </h4>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-md">
+                    <div>
+                      <span className="text-muted-foreground">Room:</span>
+                      <span className="ml-2 font-medium">{selectedBooking.room?.name || 'Unknown'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="ml-2 font-semibold text-yellow-500">ETB {selectedBooking.amount.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Check-in:</span>
+                      <span className="ml-2">{formatDate(selectedBooking.check_in)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Check-out:</span>
+                      <span className="ml-2">{formatDate(selectedBooking.check_out)}</span>
+                    </div>
+                    {selectedBooking.special_requests && (
+                      <div className="md:col-span-2">
+                        <span className="text-muted-foreground">Special Requests:</span>
+                        <p className="mt-1 text-foreground">{selectedBooking.special_requests}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Payment Information */}
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    Payment Information
+                  </h4>
+                  <div className="space-y-4 bg-muted/30 p-4 rounded-md">
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Payment Method:</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          {selectedBooking.payment_method && getPaymentMethodIcon(selectedBooking.payment_method)}
+                          <span className="font-medium">
+                            {selectedBooking.payment_method ? getPaymentMethodLabel(selectedBooking.payment_method) : 'Not specified'}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Payment Status:</span>
+                        <div className="mt-1">
+                          <Badge className={getPaymentStatusColor(selectedBooking.payment_status || 'pending')}>
+                            {selectedBooking.payment_status || 'pending'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Proof */}
+                    {selectedBooking.payment_proof_url && (
+                      <div>
+                        <span className="text-muted-foreground text-sm">Payment Proof:</span>
+                        <div className="mt-2 border border-border rounded-md overflow-hidden">
+                          <img 
+                            src={selectedBooking.payment_proof_url} 
+                            alt="Payment proof" 
+                            className="w-full h-auto max-h-96 object-contain bg-muted"
+                          />
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(selectedBooking.payment_proof_url, '_blank')}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open in New Tab
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = selectedBooking.payment_proof_url!;
+                              link.download = `payment-proof-${selectedBooking.booking_id}.jpg`;
+                              link.click();
+                            }}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {!selectedBooking.payment_proof_url && selectedBooking.payment_method !== 'hotel' && (
+                      <div className="text-sm text-muted-foreground italic">
+                        No payment proof uploaded yet
+                      </div>
+                    )}
+
+                    {selectedBooking.payment_method === 'hotel' && (
+                      <div className="text-sm text-green-600 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Payment will be collected at the hotel
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ID Verification */}
+                {(selectedBooking.id_type || selectedBooking.id_front_url || selectedBooking.id_back_url) && (
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                      ID Verification
+                    </h4>
+                    <div className="space-y-4 bg-muted/30 p-4 rounded-md">
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">ID Type:</span>
+                          <div className="mt-1">
+                            <span className="font-medium capitalize">
+                              {selectedBooking.id_type?.replace('_', ' ') || 'Not specified'}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Verification Status:</span>
+                          <div className="mt-1">
+                            <Badge className={selectedBooking.id_verified ? 'bg-green-500/10 text-green-600 border-green-500/30' : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30'}>
+                              {selectedBooking.id_verified ? 'Verified' : 'Pending Verification'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ID Images */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {selectedBooking.id_front_url && (
+                          <div>
+                            <span className="text-muted-foreground text-sm">ID Front:</span>
+                            <div className="mt-2 border border-border rounded-md overflow-hidden">
+                              <img 
+                                src={selectedBooking.id_front_url} 
+                                alt="ID Front" 
+                                className="w-full h-auto max-h-64 object-contain bg-muted"
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full mt-2"
+                              onClick={() => window.open(selectedBooking.id_front_url, '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View Full Size
+                            </Button>
+                          </div>
+                        )}
+
+                        {selectedBooking.id_back_url && (
+                          <div>
+                            <span className="text-muted-foreground text-sm">ID Back:</span>
+                            <div className="mt-2 border border-border rounded-md overflow-hidden">
+                              <img 
+                                src={selectedBooking.id_back_url} 
+                                alt="ID Back" 
+                                className="w-full h-auto max-h-64 object-contain bg-muted"
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full mt-2"
+                              onClick={() => window.open(selectedBooking.id_back_url, '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View Full Size
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {!selectedBooking.id_verified && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-md p-3">
+                          <p className="text-sm text-yellow-600">
+                            ⚠️ ID verification pending. Please review the ID images before approving the booking.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                {selectedBooking.status === 'pending' && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => handleApprove(selectedBooking)}
+                        disabled={updateMutation.isPending}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Approve Booking
+                      </Button>
+                      <Button
+                        onClick={() => handleReject(selectedBooking)}
+                        disabled={updateMutation.isPending}
+                        variant="destructive"
+                        className="flex-1"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Reject Booking
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const email = selectedBooking.guest?.email;
+                        const phone = selectedBooking.guest?.phone;
+                        const subject = `Regarding Your Booking ${selectedBooking.booking_id}`;
+                        const body = `Dear ${selectedBooking.guest?.first_name},\n\nWe need to discuss your booking ${selectedBooking.booking_id}.\n\nBest regards,\nAuréa Grand Hotel`;
+                        
+                        if (email) {
+                          window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                        } else if (phone) {
+                          window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${selectedBooking.guest?.first_name}, regarding your booking ${selectedBooking.booking_id}...`)}`, '_blank');
+                        } else {
+                          toast.error("No contact information available");
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      📧 Send Message to Guest
+                    </Button>
+                  </div>
+                )}
+
+                {selectedBooking.status === 'confirmed' && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-md p-4 text-center">
+                      <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                      <p className="text-green-600 font-medium">This booking has been approved</p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const email = selectedBooking.guest?.email;
+                        const phone = selectedBooking.guest?.phone;
+                        const subject = `Regarding Your Booking ${selectedBooking.booking_id}`;
+                        const body = `Dear ${selectedBooking.guest?.first_name},\n\nRegarding your confirmed booking ${selectedBooking.booking_id}.\n\nBest regards,\nAuréa Grand Hotel`;
+                        
+                        if (email) {
+                          window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                        } else if (phone) {
+                          window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${selectedBooking.guest?.first_name}, regarding your booking ${selectedBooking.booking_id}...`)}`, '_blank');
+                        } else {
+                          toast.error("No contact information available");
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      📧 Send Message to Guest
+                    </Button>
+                  </div>
+                )}
+
+                {selectedBooking.status === 'cancelled' && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-md p-4 text-center">
+                    <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                    <p className="text-red-600 font-medium">This booking has been cancelled</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

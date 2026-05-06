@@ -5,7 +5,7 @@ import { Star, Users, BedDouble, Maximize, Check, ArrowLeft, Eye, Clock } from "
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getRoom } from "@/lib/supabase";
+import { getRoom } from "@/api";
 
 const RoomDetail = () => {
   const { id } = useParams();
@@ -109,13 +109,13 @@ const RoomDetail = () => {
                   </Badge>
                 )}
                 <p className="text-xs text-muted-foreground">From</p>
-                <p className="font-serif text-4xl text-yellow-600 mb-1">${room.price}<span className="text-base text-muted-foreground font-sans"> / night</span></p>
+                <p className="font-serif text-4xl text-yellow-600 mb-1">ETB {room.price.toLocaleString()}<span className="text-base text-muted-foreground font-sans"> / night</span></p>
                 <p className="text-xs text-muted-foreground mb-6">Taxes included · No hidden fees</p>
 
                 <div className="space-y-3 text-sm mb-6 pb-6 border-b border-border">
-                  <div className="flex justify-between"><span className="text-muted-foreground">2 nights</span><span>${room.price * 2}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">2 nights</span><span>ETB {(room.price * 2).toLocaleString()}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span className="text-success">Included</span></div>
-                  <div className="flex justify-between font-medium pt-2 text-base"><span>Total</span><span className="text-yellow-600">${room.price * 2}</span></div>
+                  <div className="flex justify-between font-medium pt-2 text-base"><span>Total</span><span className="text-yellow-600">ETB {(room.price * 2).toLocaleString()}</span></div>
                 </div>
 
                 <Button onClick={() => navigate(`/checkout/${room.room_id}`)} variant="hero" size="xl" className="w-full mb-3">

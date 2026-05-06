@@ -44,7 +44,7 @@ const RoomCard = ({ room }: { room: Room }) => {
           <div>
             <p className="text-xs text-muted-foreground">From</p>
             <p className="font-serif text-3xl text-yellow-600 leading-none">
-              ${room.price}
+              ETB {room.price.toLocaleString()}
               <span className="text-sm text-muted-foreground font-sans"> / night</span>
             </p>
           </div>

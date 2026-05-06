@@ -83,38 +83,38 @@ const AdminDashboard = () => {
           </div>
 
           <nav className="flex-1 p-4 space-y-2">
-            <Link to="/admin" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-yellow-500 text-white border border-yellow-500">
+            <Link to="/admin" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-yellow-500 text-white border border-yellow-500">
               <LayoutDashboard className="w-5 h-5" />
               <span className="font-medium">Dashboard</span>
             </Link>
-            <Link to="/admin/bookings" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/bookings" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <Calendar className="w-5 h-5" />
               <span className="font-medium">Bookings</span>
             </Link>
-            <Link to="/admin/rooms" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/rooms" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <BedDouble className="w-5 h-5" />
               <span className="font-medium">Rooms</span>
             </Link>
-            <Link to="/admin/guests" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/guests" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <Users className="w-5 h-5" />
               <span className="font-medium">Guests</span>
             </Link>
-            <Link to="/admin/revenue" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/revenue" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <DollarSign className="w-5 h-5" />
               <span className="font-medium">Revenue</span>
             </Link>
-            <Link to="/admin/reviews" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/reviews" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <Star className="w-5 h-5" />
               <span className="font-medium">Reviews</span>
             </Link>
           </nav>
 
           <div className="p-4 border-t border-border space-y-2">
-            <Link to="/admin/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/settings" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <Settings className="w-5 h-5" />
               <span className="font-medium">Settings</span>
             </Link>
-            <Link to="/admin/login" className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
+            <Link to="/admin/login" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-foreground/70 hover:bg-yellow-500 hover:text-white transition-colors">
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Logout</span>
             </Link>
@@ -170,18 +170,28 @@ const AdminDashboard = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {statsDisplay.map((stat) => (
-              <Card key={stat.label} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-yellow-500 border border-yellow-500 flex items-center justify-center">
-                    <stat.icon className="w-6 h-6 text-white" />
+              <Link 
+                key={stat.label} 
+                to={
+                  stat.label === "Total Revenue" ? "/admin/revenue" :
+                  stat.label === "Bookings Today" ? "/admin/bookings" :
+                  stat.label === "Occupancy Rate" ? "/admin/rooms" :
+                  "/admin/reviews"
+                }
+              >
+                <Card className="p-6 hover:shadow-lg hover:border-yellow-500 transition-all cursor-pointer">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-lg bg-yellow-500 border border-yellow-500 flex items-center justify-center">
+                      <stat.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <span className={`text-sm font-medium ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
+                      {stat.change}
+                    </span>
                   </div>
-                  <span className={`text-sm font-medium ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
-                    {stat.change}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                <p className="text-3xl font-serif font-semibold">{stat.value}</p>
-              </Card>
+                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                  <p className="text-3xl font-serif font-semibold">{stat.value}</p>
+                </Card>
+              </Link>
             ))}
           </div>
 
@@ -190,14 +200,20 @@ const AdminDashboard = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-serif text-2xl">Recent Bookings</h2>
-                <Button variant="outline" size="sm" className="hover:bg-yellow-500 hover:text-white hover:border-yellow-500">View All</Button>
+                <Button variant="outline" size="sm" asChild className="hover:bg-yellow-500 hover:text-white hover:border-yellow-500">
+                  <Link to="/admin/bookings">View All</Link>
+                </Button>
               </div>
               <div className="space-y-4">
                 {recentBookings.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No bookings yet</p>
                 ) : (
                   recentBookings.map((booking) => (
-                    <div key={booking.id} className="flex items-center justify-between p-4 border border-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors">
+                    <Link 
+                      key={booking.id} 
+                      to="/admin/bookings"
+                      className="flex items-center justify-between p-4 border border-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors cursor-pointer"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <p className="font-medium">
@@ -212,12 +228,9 @@ const AdminDashboard = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <p className="font-semibold text-yellow-500">${booking.amount}</p>
-                        <button className="p-2 hover:bg-yellow-500 hover:text-white rounded-lg transition-colors">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
+                        <p className="font-semibold text-yellow-500">ETB {booking.amount.toLocaleString()}</p>
                       </div>
-                    </div>
+                    </Link>
                   ))
                 )}
               </div>
@@ -227,14 +240,20 @@ const AdminDashboard = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-serif text-2xl">Room Status</h2>
-                <Button variant="outline" size="sm" className="hover:bg-yellow-500 hover:text-white hover:border-yellow-500">Manage Rooms</Button>
+                <Button variant="outline" size="sm" asChild className="hover:bg-yellow-500 hover:text-white hover:border-yellow-500">
+                  <Link to="/admin/rooms">Manage Rooms</Link>
+                </Button>
               </div>
               <div className="space-y-4">
                 {roomStatuses.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No room status data</p>
                 ) : (
                   roomStatuses.map((room) => (
-                    <div key={room.id} className="flex items-center justify-between p-4 border border-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors">
+                    <Link
+                      key={room.id}
+                      to="/admin/rooms"
+                      className="flex items-center justify-between p-4 border border-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors cursor-pointer"
+                    >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-lg bg-card border border-border flex items-center justify-center">
                           <span className="font-semibold">{room.room_number}</span>
@@ -249,7 +268,7 @@ const AdminDashboard = () => {
                       <Badge className={`${getStatusColor(room.status)}`}>
                         {room.status}
                       </Badge>
-                    </div>
+                    </Link>
                   ))
                 )}
               </div>
@@ -260,21 +279,29 @@ const AdminDashboard = () => {
           <Card className="p-6">
             <h2 className="font-serif text-2xl mb-6">Quick Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
-                <Calendar className="w-6 h-6 text-yellow-500 group-hover:text-white" />
-                <span>New Booking</span>
+              <Button variant="outline" asChild className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
+                <Link to="/admin/bookings">
+                  <Calendar className="w-6 h-6 text-yellow-500 group-hover:text-white" />
+                  <span>New Booking</span>
+                </Link>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
-                <CheckCircle className="w-6 h-6 text-yellow-500 group-hover:text-white" />
-                <span>Check In</span>
+              <Button variant="outline" asChild className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
+                <Link to="/admin/bookings">
+                  <CheckCircle className="w-6 h-6 text-yellow-500 group-hover:text-white" />
+                  <span>Check In</span>
+                </Link>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
-                <XCircle className="w-6 h-6 text-yellow-500 group-hover:text-white" />
-                <span>Check Out</span>
+              <Button variant="outline" asChild className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
+                <Link to="/admin/bookings">
+                  <XCircle className="w-6 h-6 text-yellow-500 group-hover:text-white" />
+                  <span>Check Out</span>
+                </Link>
               </Button>
-              <Button variant="outline" className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
-                <Clock className="w-6 h-6 text-yellow-500 group-hover:text-white" />
-                <span>Housekeeping</span>
+              <Button variant="outline" asChild className="h-auto py-6 flex-col gap-2 hover:bg-yellow-500 hover:text-white hover:border-yellow-500 group">
+                <Link to="/admin/rooms">
+                  <Clock className="w-6 h-6 text-yellow-500 group-hover:text-white" />
+                  <span>Housekeeping</span>
+                </Link>
               </Button>
             </div>
           </Card>

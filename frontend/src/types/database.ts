@@ -28,6 +28,7 @@ export interface Guest {
   last_name: string;
   email: string;
   phone?: string;
+  phone_verified?: boolean;
   country?: string;
   created_at?: string;
   updated_at?: string;
@@ -44,6 +45,9 @@ export interface Booking {
   amount: number;
   guests_count: number;
   special_requests?: string;
+  payment_method: 'telebirr' | 'bank' | 'hotel';
+  payment_proof_url?: string;
+  payment_status: 'pending' | 'verified' | 'failed';
   created_at?: string;
   updated_at?: string;
   // Joined data
@@ -53,6 +57,8 @@ export interface Booking {
 
 export interface Review {
   id: string;
+  booking_id?: string;
+  guest_id?: string;
   guest_name: string;
   country?: string;
   review_date: string;
@@ -60,6 +66,7 @@ export interface Review {
   room_type?: string;
   text: string;
   verified: boolean;
+  approved: boolean;
   created_at?: string;
 }
 
