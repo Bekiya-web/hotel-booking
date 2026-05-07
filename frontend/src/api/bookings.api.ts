@@ -42,6 +42,7 @@ export const createBooking = async (booking: {
   id_type?: string;
   id_front_url?: string;
   id_back_url?: string;
+  selfie_url?: string;
 }) => {
   // First, create or get guest
   const { data: existingGuest } = await supabase
@@ -119,6 +120,7 @@ export const createBooking = async (booking: {
       id_type: booking.id_type,
       id_front_url: booking.id_front_url,
       id_back_url: booking.id_back_url,
+      selfie_url: booking.selfie_url,
       id_verified: false
     })
     .select(`
@@ -155,4 +157,84 @@ export const deleteBooking = async (id: string) => {
     .eq('id', id);
   
   if (error) throw error;
+};
+
+// Get bookings by guest email for customer dashboard
+export const getBookingsByEmail = async (email: string): Promise<Booking[]> => {
+  // First, get the guest by email
+  const { data: guest, error: guestError } = await supabase
+    .from('guests')
+    .select('id')
+    .eq('email', email)
+    .single();
+
+  if (guestError || !guest) {
+    // No guest found with this email, return empty array
+    return [];
+  }
+
+  // Get all bookings for this guest
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      *,
+      guest:guests(*),
+      room:rooms(*)
+    `)
+    .eq('guest_id', guest.id)
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+};
+
+// Get guest profile by email
+export const getGuestByEmail = async (email: string): Promise<Guest | null> => {
+  const { data, error } = await supabase
+    .from('guests')
+    .select('*')
+    .eq('email', email)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No guest found
+      return null;
+    }
+    throw error;
+  }
+  return data;
+};
+
+// Update guest profile
+export const updateGuestProfile = async (email: string, updates: Partial<Guest>) => {
+  const { data, error } = await supabase
+    .from('guests')
+    .update(updates)
+    .eq('email', email)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+};
+
+// Cancel booking (customer-initiated)
+export const cancelBooking = async (bookingId: string) => {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({ 
+      status: 'cancelled',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', bookingId)
+    .select(`
+      *,
+      guest:guests(*),
+      room:rooms(*)
+    `)
+    .single();
+  
+  if (error) throw error;
+  return data;
 };

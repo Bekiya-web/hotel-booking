@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Award, Sparkles, ShieldCheck, Clock, Star, ArrowRight, Utensils, Waves, Dumbbell, Wifi, Smartphone, CreditCard, Globe, Headphones, Shield, Zap } from "lucide-react";
 import SiteLayout from "@/components/site/SiteLayout";
 import BookingWidget from "@/components/site/BookingWidget";
@@ -7,6 +8,7 @@ import RoomCard from "@/components/site/RoomCard";
 import { Button } from "@/components/ui/button";
 import { getRooms } from "@/lib/supabase";
 import { getReviews } from "@/api";
+import { getHotelInfo, type HotelInfo } from "@/api/settings.api";
 import dining from "@/assets/amenity-dining.jpg";
 import spa from "@/assets/amenity-spa.jpg";
 
@@ -34,6 +36,8 @@ const modernFeatures = [
 ];
 
 const Index = () => {
+  const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
+
   const { data: rooms = [], isLoading } = useQuery({
     queryKey: ['rooms'],
     queryFn: getRooms
@@ -43,6 +47,14 @@ const Index = () => {
     queryKey: ['reviews'],
     queryFn: getReviews
   });
+
+  useEffect(() => {
+    const loadHotelInfo = async () => {
+      const info = await getHotelInfo();
+      if (info) setHotelInfo(info);
+    };
+    loadHotelInfo();
+  }, []);
 
   return (
     <SiteLayout>
@@ -64,7 +76,7 @@ const Index = () => {
               Find & book your <em className="text-yellow-400 not-italic">perfect stay</em> in seconds.
             </h1>
             <p className="text-lg text-white/90 max-w-xl leading-relaxed drop-shadow-lg">
-              A quiet skyline retreat where timeless hospitality meets modern luxury. Real-time availability, instant confirmation, best price guaranteed.
+              {hotelInfo?.description || "Experience luxury and comfort at YILMA HOTEL. Your perfect stay awaits in the heart of Addis Ababa. Real-time availability, instant confirmation, best price guaranteed."}
             </p>
           </div>
 

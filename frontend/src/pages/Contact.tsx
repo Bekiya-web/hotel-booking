@@ -20,14 +20,16 @@ const Contact = () => (
       <div className="container grid lg:grid-cols-2 gap-12">
         <div className="space-y-6">
           {[
-            { icon: Phone, label: "Call us", value: "+1 (555) 123-4567", href: "tel:+15551234567" },
-            { icon: MessageCircle, label: "WhatsApp", value: "Chat with concierge", href: "https://wa.me/15551234567" },
-            { icon: Mail, label: "Email", value: "stay@aurea-grand.com", href: "mailto:stay@aurea-grand.com" },
-            { icon: MapPin, label: "Visit", value: "1 Skyline Promenade", href: "#" },
+            { icon: Phone, label: "Call us", value: "+251 911 234 567", href: "tel:+251911234567" },
+            { icon: MessageCircle, label: "WhatsApp", value: "Chat with concierge", href: "https://wa.me/251911234567" },
+            { icon: Mail, label: "Email", value: "yilmahotel@gmail.com", href: "mailto:yilmahotel@gmail.com" },
+            { icon: MapPin, label: "Visit", value: "Addis Ababa, Ethiopia", href: "https://maps.app.goo.gl/MWyTvtywKv54ciRK7" },
           ].map((c) => (
             <a
               key={c.label}
               href={c.href}
+              target={c.label === "Visit" ? "_blank" : undefined}
+              rel={c.label === "Visit" ? "noopener noreferrer" : undefined}
               className="flex items-center gap-5 bg-card border border-border rounded-md p-6 hover:border-yellow-500 transition-smooth"
             >
               <div className="w-12 h-12 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center">

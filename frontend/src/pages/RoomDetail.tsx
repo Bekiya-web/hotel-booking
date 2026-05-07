@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Star, Users, BedDouble, Maximize, Check, ArrowLeft, Eye, Clock } from "lucide-react";
+import { Star, Users, BedDouble, Maximize, Check, ArrowLeft, Eye, Clock, LogIn } from "lucide-react";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,13 @@ const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeImg, setActiveImg] = useState(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const email = localStorage.getItem("customerEmail");
+    setIsLoggedIn(!!email);
+  }, []);
 
   const { data: room, isLoading } = useQuery({
     queryKey: ['room', id],

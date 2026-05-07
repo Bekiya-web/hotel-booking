@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, Phone, X } from "lucide-react";
 import Logo from "./Logo";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
+import { getHotelInfo, type HotelInfo } from "@/api/settings.api";
+import { getBookingsByEmail } from "@/api/bookings.api";
 
 const navItems = [
   { label: "Home", to: "/" },
   { label: "Stay", to: "/rooms" },
+  { label: "Gallery", to: "/gallery" },
   { label: "Reviews", to: "/reviews" },
   { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
@@ -16,7 +20,24 @@ const navItems = [
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   const location = useLocation();
+
+  // Check if user is logged in
+  useEffect(() => {
+    const email = localStorage.getItem("customerEmail");
+    setCustomerEmail(email);
+  }, [location.pathname]); // Re-check on route change
+
+  // Fetch user's bookings to check if they have any
+  const { data: bookings = [] } = useQuery({
+    queryKey: ['customer-bookings-count', customerEmail],
+    queryFn: () => getBookingsByEmail(customerEmail!),
+    enabled: !!customerEmail,
+  });
+
+  const hasBookings = bookings.length > 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -26,6 +47,15 @@ const Header = () => {
   }, []);
 
   useEffect(() => setOpen(false), [location.pathname]);
+
+  // Load hotel info
+  useEffect(() => {
+    const loadHotelInfo = async () => {
+      const info = await getHotelInfo();
+      if (info) setHotelInfo(info);
+    };
+    loadHotelInfo();
+  }, []);
 
   const isHome = location.pathname === "/";
 
@@ -61,7 +91,7 @@ const Header = () => {
             <ThemeToggle />
           </div>
           <a
-            href="tel:+15551234567"
+            href={`tel:${hotelInfo?.phone || '+251911234567'}`}
             className={`hidden md:flex items-center gap-2 text-sm transition-smooth ${
               scrolled || !isHome
                 ? "text-foreground/80 hover:text-yellow-500"
@@ -69,8 +99,13 @@ const Header = () => {
             }`}
           >
             <Phone className="w-4 h-4" />
-            +1 (555) 123-4567
+            {hotelInfo?.phone || '+251 911 234 567'}
           </a>
+          {hasBookings && (
+            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+              <Link to="/my-bookings">My Bookings</Link>
+            </Button>
+          )}
           <Button asChild variant="hero" size="sm" className="hidden md:inline-flex">
             <Link to="/rooms">Book Now</Link>
           </Button>
@@ -96,7 +131,12 @@ const Header = () => {
                 {item.label}
               </Link>
             ))}
-            <Button asChild variant="hero" className="mt-2">
+            {hasBookings && (
+              <Button asChild variant="outline" className="mt-2">
+                <Link to="/my-bookings">My Bookings</Link>
+              </Button>
+            )}
+            <Button asChild variant="hero">
               <Link to="/rooms">Book Now</Link>
             </Button>
           </nav>

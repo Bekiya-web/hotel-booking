@@ -70,6 +70,7 @@ WHERE email = 'bekibekinat@gmail.com';
 
 -- Show table info
 SELECT 
+
   'Table: admin_users' as info,
   'RLS Status: ' || CASE WHEN relrowsecurity THEN 'ENABLED ⚠️' ELSE 'DISABLED ✅' END as rls_status
 FROM pg_class 

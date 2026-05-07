@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Bell,
-  Search
+  Search,
+  Image
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -43,6 +44,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { path: "/admin/guests", icon: Users, label: "Guests" },
     { path: "/admin/revenue", icon: DollarSign, label: "Revenue" },
     { path: "/admin/reviews", icon: Star, label: "Reviews" },
+    { path: "/admin/gallery", icon: Image, label: "Gallery" },
   ];
 
   return (
@@ -52,8 +54,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b border-border">
             <Link to="/admin" className="flex items-center gap-2">
-              <span className="font-serif text-xl tracking-wide text-yellow-500">Auréa</span>
-              <span className="font-serif text-xl tracking-wider text-foreground font-semibold uppercase">Grand</span>
+              <span className="font-serif text-xl tracking-wider text-yellow-500 font-semibold uppercase">YILMA</span>
+              <span className="font-serif text-xl tracking-wider text-foreground font-semibold uppercase">HOTEL</span>
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
               <X className="w-5 h-5" />
@@ -132,10 +134,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               <div className="flex items-center gap-3 pl-4 border-l border-border">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium">Admin User</p>
-                  <p className="text-xs text-muted-foreground">admin@aurea-grand.com</p>
+                  <p className="text-xs text-muted-foreground">yilmahotel@gmail.com</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-yellow-500 border border-yellow-500 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-white">AU</span>
+                  <span className="text-sm font-semibold text-white">YH</span>
                 </div>
               </div>
             </div>

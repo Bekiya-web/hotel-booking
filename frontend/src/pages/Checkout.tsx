@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, Lock, ShieldCheck, Upload, Phone, Building2, Wallet, CreditCard, IdCard } from "lucide-react";
+import { Check, Lock, ShieldCheck, Upload, Phone, Building2, Wallet, CreditCard, IdCard, User, LogIn } from "lucide-react";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,10 @@ import { Card } from "@/components/ui/card";
 import { getRoom } from "@/api";
 import { createBooking } from "@/lib/supabase";
 import { getPaymentSettings, type PaymentSettings } from "@/api/settings.api";
+import { getGuestByEmail } from "@/api/bookings.api";
 import { toast } from "sonner";
 
-const steps = ["Your details", "Payment", "Confirmation"];
+const steps = ["Your details", "Verification", "Payment", "Confirmation"];
 
 const Checkout = () => {
   const { id } = useParams();
@@ -24,10 +25,15 @@ const Checkout = () => {
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   
+  // Check if user is logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [customerEmail, setCustomerEmail] = useState("");
+  
   // ID Verification
   const [idType, setIdType] = useState<'national_id' | 'drivers_license' | 'regional_id'>('national_id');
   const [idFrontImage, setIdFrontImage] = useState<File | null>(null);
   const [idBackImage, setIdBackImage] = useState<File | null>(null);
+  const [selfieImage, setSelfieImage] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -41,6 +47,35 @@ const Checkout = () => {
     guests: 2,
     specialRequests: ''
   });
+
+  // Check authentication on mount
+  useEffect(() => {
+    const email = localStorage.getItem("customerEmail");
+    if (email) {
+      setIsLoggedIn(true);
+      setCustomerEmail(email);
+    }
+  }, []);
+
+  // Fetch customer data if logged in
+  const { data: customerData } = useQuery({
+    queryKey: ['customer-profile', customerEmail],
+    queryFn: () => getGuestByEmail(customerEmail),
+    enabled: isLoggedIn && !!customerEmail,
+  });
+
+  // Auto-fill form with customer data
+  useEffect(() => {
+    if (customerData) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: customerData.first_name || '',
+        lastName: customerData.last_name || '',
+        email: customerData.email || '',
+        phone: customerData.phone || '',
+      }));
+    }
+  }, [customerData]);
 
   const { data: room, isLoading } = useQuery({
     queryKey: ['room', id],
@@ -103,6 +138,94 @@ const Checkout = () => {
     );
   }
 
+  // Require login before booking
+  if (!isLoggedIn) {
+    return (
+      <SiteLayout>
+        <section className="py-32">
+          <div className="container max-w-2xl">
+            <Card className="p-8 md:p-12">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <LogIn className="w-8 h-8 text-yellow-500" />
+                </div>
+                <h1 className="font-serif text-3xl mb-3">Sign In Required</h1>
+                <p className="text-muted-foreground">
+                  Please sign in to your customer account to continue with your booking
+                </p>
+              </div>
+
+              <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-md p-6 mb-8">
+                <h3 className="font-medium mb-3">Why sign in?</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                    <span>Track all your bookings in one place</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                    <span>Auto-fill your details for faster checkout</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                    <span>Manage and cancel bookings easily</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                    <span>Receive booking updates and notifications</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <Button 
+                  variant="hero" 
+                  size="lg" 
+                  className="w-full"
+                  onClick={() => navigate('/my-bookings', { state: { returnTo: `/checkout/${id}` } })}
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In to Continue
+                </Button>
+                
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Don't have an account? Sign in with your email to create one automatically
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/rooms')}
+                  >
+                    Back to Rooms
+                  </Button>
+                </div>
+              </div>
+
+              {/* Room Preview */}
+              <div className="mt-8 pt-8 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-4">You're booking:</p>
+                <div className="flex gap-4">
+                  <img 
+                    src={room.image} 
+                    alt={room.name} 
+                    className="w-24 h-24 object-cover rounded-md"
+                  />
+                  <div>
+                    <h3 className="font-serif text-lg mb-1">{room.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{room.view}</p>
+                    <p className="text-yellow-600 font-semibold">
+                      ETB {room.price.toLocaleString()} / night
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
+      </SiteLayout>
+    );
+  }
+
   // Calculate nights dynamically based on selected dates
   const calculateNights = () => {
     if (!formData.checkInDate || !formData.checkOutDate) return 1;
@@ -115,7 +238,112 @@ const Checkout = () => {
   const nights = calculateNights();
   const subtotal = room.price * nights;
 
+  // Validation functions for each step
+  const validateStep0 = () => {
+    // Validate Your Details step
+    if (!formData.firstName.trim()) {
+      toast.error("Please enter your first name");
+      return false;
+    }
+    if (!/^[a-zA-Z\s]+$/.test(formData.firstName)) {
+      toast.error("First name should only contain letters");
+      return false;
+    }
+    if (!formData.lastName.trim()) {
+      toast.error("Please enter your last name");
+      return false;
+    }
+    if (!/^[a-zA-Z\s]+$/.test(formData.lastName)) {
+      toast.error("Last name should only contain letters");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Please enter your email");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      toast.error("Please enter your phone number");
+      return false;
+    }
+    if (!/^\+?[0-9\s\-()]+$/.test(formData.phone)) {
+      toast.error("Phone number should only contain numbers");
+      return false;
+    }
+    // Validate phone length (must be at least 10 digits)
+    const phoneDigits = formData.phone.replace(/[^0-9]/g, '');
+    if (phoneDigits.length < 10) {
+      toast.error("Phone number must be at least 10 digits");
+      return false;
+    }
+    if (!formData.checkInDate) {
+      toast.error("Please select check-in date");
+      return false;
+    }
+    if (!formData.checkInTime) {
+      toast.error("Please select check-in time");
+      return false;
+    }
+    if (!formData.checkOutDate) {
+      toast.error("Please select check-out date");
+      return false;
+    }
+    if (!formData.checkOutTime) {
+      toast.error("Please select check-out time");
+      return false;
+    }
+    if (formData.guests < 1) {
+      toast.error("Please enter number of guests");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep1 = () => {
+    // Validate Verification step
+    if (!idFrontImage) {
+      toast.error("Please upload the front image of your ID");
+      return false;
+    }
+    if (!idBackImage) {
+      toast.error("Please upload the back image of your ID");
+      return false;
+    }
+    if (!selfieImage) {
+      toast.error("Please upload a selfie photo");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    // Validate Payment step
+    if (!paymentMethod) {
+      toast.error("Please select a payment method");
+      return false;
+    }
+    if ((paymentMethod === 'telebirr' || paymentMethod === 'bank') && !paymentProof) {
+      toast.error("Please upload payment proof");
+      return false;
+    }
+    return true;
+  };
+
   const next = () => {
+    // Validate current step before proceeding
+    if (step === 0 && !validateStep0()) {
+      return;
+    }
+    if (step === 1 && !validateStep1()) {
+      return;
+    }
+    if (step === 2 && !validateStep2()) {
+      return;
+    }
+
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
@@ -134,6 +362,12 @@ const Checkout = () => {
     // Validate ID images
     if (!idFrontImage || !idBackImage) {
       toast.error("Please upload both front and back images of your ID");
+      return;
+    }
+
+    // Validate selfie image
+    if (!selfieImage) {
+      toast.error("Please capture a selfie for face verification");
       return;
     }
 
@@ -156,10 +390,11 @@ const Checkout = () => {
       
       const { uploadToCloudinary } = await import('@/lib/cloudinary');
       
-      // Upload ID images
-      const [idFrontResult, idBackResult] = await Promise.all([
+      // Upload ID images and selfie
+      const [idFrontResult, idBackResult, selfieResult] = await Promise.all([
         uploadToCloudinary(idFrontImage, 'id-verification'),
-        uploadToCloudinary(idBackImage, 'id-verification')
+        uploadToCloudinary(idBackImage, 'id-verification'),
+        uploadToCloudinary(selfieImage, 'selfie-verification')
       ]);
 
       let paymentProofUrl = '';
@@ -188,7 +423,8 @@ const Checkout = () => {
         payment_proof_url: paymentProofUrl,
         id_type: idType,
         id_front_url: idFrontResult.secure_url,
-        id_back_url: idBackResult.secure_url
+        id_back_url: idBackResult.secure_url,
+        selfie_url: selfieResult.secure_url
       });
     } catch (error: any) {
       toast.error("Failed to process booking", { description: error.message });
@@ -234,7 +470,10 @@ const Checkout = () => {
                         required
                         placeholder="Helena" 
                         value={formData.firstName}
-                        onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                          setFormData({...formData, firstName: value});
+                        }}
                       />
                     </div>
                     <div className="space-y-2">
@@ -243,7 +482,10 @@ const Checkout = () => {
                         required
                         placeholder="Marlow" 
                         value={formData.lastName}
-                        onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                          setFormData({...formData, lastName: value});
+                        }}
                       />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
@@ -263,7 +505,10 @@ const Checkout = () => {
                         type="tel" 
                         placeholder="+251 912 345 678" 
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9+\s\-()]/g, '');
+                          setFormData({...formData, phone: value});
+                        }}
                       />
                     </div>
 
@@ -327,8 +572,17 @@ const Checkout = () => {
                         type="number" 
                         min="1"
                         max={room?.guests || 10}
-                        value={formData.guests}
-                        onChange={(e) => setFormData({...formData, guests: Number(e.target.value)})}
+                        value={formData.guests || ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? 0 : Number(e.target.value);
+                          setFormData({...formData, guests: value});
+                        }}
+                        onFocus={(e) => {
+                          if (e.target.value === '0') {
+                            setFormData({...formData, guests: 0});
+                            e.target.value = '';
+                          }
+                        }}
                       />
                       <p className="text-xs text-muted-foreground">Maximum {room?.guests || 2} guests for this room</p>
                     </div>
@@ -342,12 +596,19 @@ const Checkout = () => {
                         onChange={(e) => setFormData({...formData, specialRequests: e.target.value})}
                       />
                     </div>
+                  </div>
+                </>
+              )}
 
+              {step === 1 && (
+                <>
+                  <h2 className="font-serif text-3xl mb-6">ID Verification</h2>
+                  <div className="grid sm:grid-cols-2 gap-5">
                     {/* ID Verification Section */}
-                    <div className="space-y-2 sm:col-span-2 pt-6 border-t-2">
+                    <div className="space-y-2 sm:col-span-2">
                       <div className="flex items-center gap-2 mb-4">
                         <IdCard className="w-5 h-5 text-yellow-500" />
-                        <h3 className="font-medium text-lg">ID Verification *</h3>
+                        <h3 className="font-medium text-lg">Verify Your Identity</h3>
                       </div>
                       <p className="text-sm text-muted-foreground mb-4">
                         For security purposes, please upload a valid ID document (front and back)
@@ -428,14 +689,48 @@ const Checkout = () => {
                       <p className="text-xs text-muted-foreground">Upload a clear photo of the back of your ID</p>
                     </div>
 
+                    {/* Face Verification Section */}
+                    <div className="space-y-2 sm:col-span-2 pt-6 border-t-2">
+                      <div className="flex items-center gap-2 mb-4">
+                        <User className="w-5 h-5 text-yellow-500" />
+                        <h3 className="font-medium text-lg">Face Verification *</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Upload a selfie photo to verify your identity matches the ID document
+                      </p>
+                    </div>
+
+                    {/* Selfie Upload */}
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Selfie Photo *</Label>
+                      <div className="border-2 border-dashed border-border rounded-md p-6 text-center hover:border-yellow-500 transition-smooth">
+                        <User className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <Input 
+                          required
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => setSelfieImage(e.target.files?.[0] || null)}
+                          className="cursor-pointer"
+                        />
+                        {selfieImage && (
+                          <p className="text-sm text-green-600 mt-2">✓ {selfieImage.name}</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload a clear photo of your face (your face should be clearly visible)
+                      </p>
+                    </div>
+
                     {/* ID Upload Guidelines */}
                     <div className="sm:col-span-2 bg-blue-500/5 border border-blue-500/20 rounded-md p-4">
-                      <h4 className="font-medium text-sm mb-2">ID Upload Guidelines:</h4>
+                      <h4 className="font-medium text-sm mb-2">Verification Guidelines:</h4>
                       <ul className="text-xs text-muted-foreground space-y-1">
                         <li>• Ensure the ID is valid and not expired</li>
                         <li>• Photo should be clear and all text readable</li>
                         <li>• Avoid glare or shadows on the ID</li>
                         <li>• Both front and back images are required</li>
+                        <li>• Your selfie should clearly show your face</li>
+                        <li>• Make sure your face matches the ID photo</li>
                         <li>• Accepted formats: JPG, PNG</li>
                       </ul>
                     </div>
@@ -443,7 +738,7 @@ const Checkout = () => {
                 </>
               )}
 
-              {step === 1 && (
+              {step === 2 && (
                 <>
                   <h2 className="font-serif text-3xl mb-6">Payment Method</h2>
                   <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3 mb-6">
@@ -597,7 +892,7 @@ const Checkout = () => {
                 </>
               )}
 
-              {step === 2 && (
+              {step === 3 && (
                 <>
                   <h2 className="font-serif text-3xl mb-6">Review & confirm</h2>
                   <div className="space-y-3 text-sm">
@@ -629,12 +924,24 @@ const Checkout = () => {
                   <h3 className="font-serif text-xl mb-1">{room.name}</h3>
                   <p className="text-xs text-muted-foreground mb-5">{room.view} · {room.bed}</p>
 
+                  {/* Stay Duration Info */}
+                  {formData.checkInDate && formData.checkOutDate && (
+                    <div className="mb-5 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        You are staying for {nights} {nights === 1 ? 'night' : 'nights'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(formData.checkInDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(formData.checkOutDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-3 text-sm pb-5 border-b border-border">
-                    <div className="flex justify-between"><span className="text-muted-foreground">ETB {room.price.toLocaleString()} × {nights} nights</span><span>ETB {subtotal.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">ETB {room.price.toLocaleString()} × {nights} {nights === 1 ? 'night' : 'nights'}</span><span>ETB {subtotal.toLocaleString()}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Taxes & fees</span><span className="text-success">Included</span></div>
                   </div>
                   <div className="flex justify-between pt-5 text-base">
-                    <span className="font-medium">Total</span>
+                    <span className="font-medium">Total Payment</span>
                     <span className="font-serif text-2xl text-yellow-600">ETB {subtotal.toLocaleString()}</span>
                   </div>
 
